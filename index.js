@@ -9,8 +9,9 @@ puppeteer.use(StealthPlugin());
 const app = express();
 app.use(cors());
 
+require('dotenv').config();
 const openai = new OpenAI({
-  apiKey: 'REMOVED_API_KEY',
+  apiKey: process.env.OPENAI_API_KEY, 
 });
 
 app.get('/scrape', async (req, res) => {

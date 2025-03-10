@@ -3,15 +3,27 @@ const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const cors = require('cors');
 const OpenAI = require('openai');
+const path = require('path');
+require('dotenv').config();
+
+// Debug: Log the API key to verify it's loaded
+console.log('OPENAI_API_KEY:', process.env.OPENAI_API_KEY);
 
 puppeteer.use(StealthPlugin());
 
 const app = express();
 app.use(cors());
 
-require('dotenv').config();
+// Serve static files (like index.html)
+app.use(express.static(path.join(__dirname)));
+
+// Serve the index.html at the root URL
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, 
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 app.get('/scrape', async (req, res) => {
@@ -100,4 +112,6 @@ app.get('/interview', async (req, res) => {
   }
 });
 
-app.listen(5000, () => console.log('Server on 5000'));
+// Use environment port or default to 5000
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server on ${PORT}`));

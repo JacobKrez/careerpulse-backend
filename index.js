@@ -26,10 +26,7 @@ app.get('/scrape', async (req, res) => {
   try {
     const skills = req.query.skills || 'developer';
     let executablePath;
-    try {
-      executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || execSync('which chromium-browser || which chromium', { encoding: 'utf8' }).trim();
-    } catch (e) {
-      console.error('Could not find Chromium executable:', e);
+    const executablePath = '/usr/bin/chromium'; // Explicit Chromium path
       return res.status(500).json({ error: 'Chromium not found on server' });
     }
     console.log('Launching Puppeteer with executable path:', executablePath);

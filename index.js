@@ -3,21 +3,13 @@ const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const cors = require('cors');
 const OpenAI = require('openai');
-const path = require('path');
+const { execSync } = require('child_process');
 require('dotenv').config();
 
 puppeteer.use(StealthPlugin());
 
 const app = express();
 app.use(cors());
-
-// Serve static files (like index.html)
-app.use(express.static(path.join(__dirname)));
-
-// Serve the index.html at the root URL
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
 
 // Validate API key
 const openaiApiKey = process.env.OPENAI_API_KEY;
@@ -33,21 +25,33 @@ const openai = new OpenAI({
 app.get('/scrape', async (req, res) => {
   try {
     const skills = req.query.skills || 'developer';
+    let executablePath;
+    try {
+      executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || execSync('which chromium-browser || which chromium', { encoding: 'utf8' }).trim();
+    } catch (e) {
+      console.error('Could not find Chromium executable:', e);
+      return res.status(500).json({ error: 'Chromium not found on server' });
+    }
+    console.log('Launching Puppeteer with executable path:', executablePath);
     const browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'], // Required for Render
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      executablePath: executablePath,
     });
+    console.log('Browser launched successfully');
     const page = await browser.newPage();
 
+    console.log(`Navigating to https://www.jobindex.dk/jobsoegning?q=${skills}`);
     await page.goto(`https://www.jobindex.dk/jobsoegning?q=${skills}`, {
       waitUntil: 'networkidle2',
     });
+    console.log('Page loaded, waiting for selector');
     await page.waitForSelector('.jobsearch-result a', { timeout: 10000 });
 
     const jobs = await page.$$eval('.jobsearch-result a', nodes =>
       nodes.map(n => n.innerText.trim()).filter(t => t.length > 0)
     );
+    console.log('Jobs scraped:', jobs);
     await browser.close();
 
     res.json(jobs.slice(0, 5));

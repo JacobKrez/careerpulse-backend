@@ -6,9 +6,6 @@ const OpenAI = require('openai');
 const path = require('path');
 require('dotenv').config();
 
-// Debug: Log the API key to verify it's loaded
-console.log('OPENAI_API_KEY:', process.env.OPENAI_API_KEY);
-
 puppeteer.use(StealthPlugin());
 
 const app = express();
@@ -22,14 +19,25 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Validate API key
+const openaiApiKey = process.env.OPENAI_API_KEY;
+if (!openaiApiKey) {
+  console.error('Error: OPENAI_API_KEY is not set. Please set it in .env or environment variables.');
+  process.exit(1);
+}
+
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: openaiApiKey,
 });
 
 app.get('/scrape', async (req, res) => {
   try {
     const skills = req.query.skills || 'developer';
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'], // Required for Render
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || (await puppeteer.executablePath()),
+    });
     const page = await browser.newPage();
 
     await page.goto(`https://www.jobindex.dk/jobsoegning?q=${skills}`, {
@@ -73,6 +81,9 @@ async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) {
 app.get('/email', async (req, res) => {
   try {
     const { job, skills } = req.query;
+    if (!job || !skills) {
+      return res.status(400).send('Job title and skills are required');
+    }
     const prompt = `Write a concise, professional outreach email for a ${job} position, highlighting skills: ${skills}.`;
 
     const response = await retryWithBackoff(async () => {
@@ -94,6 +105,9 @@ app.get('/email', async (req, res) => {
 app.get('/interview', async (req, res) => {
   try {
     const { job, skills } = req.query;
+    if (!job || !skills) {
+      return res.status(400).send('Job title and skills are required');
+    }
     const prompt = `Generate 3 common interview questions for a ${job} role, tailored to skills: ${skills}.`;
 
     const response = await retryWithBackoff(async () => {
@@ -112,6 +126,5 @@ app.get('/interview', async (req, res) => {
   }
 });
 
-// Use environment port or default to 5000
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server on ${PORT}`));

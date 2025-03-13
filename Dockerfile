@@ -47,7 +47,7 @@ RUN apt-get update && \
     lsb-release \
     wget \
     xdg-utils && \
-    apt-get install -y chromium
+    apt-get install -y chromium chromium-driver
 
 CMD ["node", "index.js"]
 ```

@@ -3,7 +3,6 @@ const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const cors = require('cors');
 const OpenAI = require('openai');
-const { execSync } = require('child_process');
 require('dotenv').config();
 
 puppeteer.use(StealthPlugin());
@@ -51,7 +50,7 @@ app.get('/scrape', async (req, res) => {
         res.json(jobs.slice(0, 5));
     } catch (error) {
         console.error('Scrape error:', error);
-        res.status(500).json({ error: 'Failed to scrape data' });
+        res.status(500).json({ error: 'Failed to scrape jobs' });
     }
 });
 

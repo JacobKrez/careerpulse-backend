@@ -1,15 +1,26 @@
-FROM node:18
+# Stage 1: Build environment with dependencies
+FROM node:18 AS builder
 
 WORKDIR /app
 
+# Copy package files first to leverage Docker cache
 COPY package*.json ./
 
+# Install Node.js dependencies
 RUN npm install
 
-COPY . .
+# Stage 2: Runtime environment with Chromium
+FROM node:18-slim
 
-RUN apt-get update && \
-    apt-get install -y \
+# Set working directory
+WORKDIR /app
+
+# Create a non-root user
+RUN groupadd -r appuser && useradd -r -g appuser appuser \
+    && mkdir -p /app && chown appuser:appuser /app
+
+# Install system dependencies and Chromium
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     fonts-liberation \
     libappindicator3-1 \
@@ -46,41 +57,17 @@ RUN apt-get update && \
     libxtst6 \
     lsb-release \
     wget \
-    xdg-utils && \
-    apt-get install -y chromium chromium-driver
+    xdg-utils \
+    chromium \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
+# Copy built dependencies and source code
+COPY --from=builder /app/node_modules ./node_modules
+COPY . .
+
+# Switch to non-root user
+USER appuser
+
+# Run the application
 CMD ["node", "index.js"]
-```
-
-* **Render Configuration:**
-* In your Render dashboard, go to your `careerpulse-backend` service.
-* Go to the "Settings" tab.
-* Change the "Environment" to "Docker".
-* Render will automatically detect and use your `Dockerfile`.
-* **Remove install-chrome.sh:**
-* Since the Dockerfile handles the Chromium installation, you can remove the `install-chrome.sh` file.
-* **Commit and Push:**
-* Commit the `Dockerfile` and the removal of `install-chrome.sh` to your `careerpulse-backend` repository.
-* `git add Dockerfile`
-* `git rm install-chrome.sh`
-* `git commit -m "Use Dockerfile for Chromium installation"`
-* `git push origin main`
-
-* **Netlify Solution: Fix Backend First**
-* Once the Render backend is working, we can then re-add the submodule to the front end.
-
-**4. Next Steps**
-
-* **Implement Dockerfile:**
-* Create the `Dockerfile` in your `careerpulse-backend` repository.
-* Configure Render to use Docker.
-* Remove the install-chrome.sh file.
-* Commit and push the changes.
-* **Monitor Render Deployment:**
-* Monitor the Render deployment logs to ensure the Docker build is successful and Chromium is installed.
-* **Test Backend Endpoints:**
-* Once the backend is deployed, test the API endpoints.
-* **Address Netlify Submodule Issues:**
-* Once the backend is confirmed working, then we will address the front end submodule issues.
-
-By using a Dockerfile, you'll have a more controlled and reliable environment for your backend, resolving the permission errors and ensuring Chromium is installed correctly.

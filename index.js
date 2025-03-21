@@ -21,36 +21,94 @@ const openai = new OpenAI({
     apiKey: openaiApiKey,
 });
 
+// Scrape endpoint with enhanced functionality
 app.get('/scrape', async (req, res) => {
-    try {
-        const skills = req.query.skills || 'developer';
-        const executablePath = '/usr/bin/chromium'; // Explicit Chromium path
-        console.log('Launching Puppeteer with executable path:', executablePath);
-        const browser = await puppeteer.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-            executablePath: executablePath,
-        });
-        console.log('Browser launched successfully');
-        const page = await browser.newPage();
+    const skills = req.query.skills || 'developer';
+    let browser;
+    let attempts = 0;
+    const maxAttempts = 3;
+    const initialDelay = 2000;
 
-        console.log(`Navigating to https://www.jobindex.dk/jobsoegning?q=${skills}`);
-        await page.goto(`https://www.jobindex.dk/jobsoegning?q=${skills}`, {
-            waitUntil: 'networkidle2',
-        });
-        console.log('Page loaded, waiting for selector');
-        await page.waitForSelector('.jobsearch-result a', { timeout: 10000 });
+    while (attempts < maxAttempts) {
+        try {
+            console.log(`Attempt ${attempts + 1} to scrape jobs for skills: ${skills}`);
 
-        const jobs = await page.$$eval('.jobsearch-result a', nodes =>
-            nodes.map(n => n.innerText.trim()).filter(t => t.length > 0)
-        );
-        console.log('Jobs scraped:', jobs);
-        await browser.close();
+            // Launch Puppeteer with optimized settings for Render
+            browser = await puppeteer.launch({
+                headless: true,
+                args: [
+                    '--no-sandbox', // Required for Docker on Render
+                    '--disable-setuid-sandbox',
+                    '--disable-crash-reporter', // Disable crash reporting to avoid crashpad issues
+                    '--no-first-run',
+                    '--disable-gpu', // Helps in headless environments
+                    '--disable-dev-shm-usage', // Avoids shared memory issues in Docker
+                ],
+                executablePath: '/usr/bin/chromium', // Hardcoded path for Render
+                ignoreDefaultArgs: ['--enable-crash-reporter'], // Explicitly ignore crash reporter
+            });
 
-        res.json(jobs.slice(0, 5));
-    } catch (error) {
-        console.error('Scrape error:', error);
-        res.status(500).json({ error: 'Failed to scrape jobs' });
+            const page = await browser.newPage();
+
+            // Anti-bot measures
+            await page.setUserAgent(
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            );
+            await page.setViewport({ width: 1280, height: 720 });
+
+            console.log(`Navigating to Indeed with skills: ${skills}`);
+            const url = `https://www.indeed.com/jobs?q=${encodeURIComponent(skills)}&l=`;
+            await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+
+            // Add a delay to mimic human behavior and wait for dynamic content
+            await page.waitForTimeout(3000);
+
+            // Scroll to load more jobs
+            await page.evaluate(async () => {
+                await new Promise((resolve) => {
+                    let totalHeight = 0;
+                    const distance = 100;
+                    const timer = setInterval(() => {
+                        const scrollHeight = document.body.scrollHeight;
+                        window.scrollBy(0, distance);
+                        totalHeight += distance;
+                        if (totalHeight >= scrollHeight) {
+                            clearInterval(timer);
+                            resolve();
+                        }
+                    }, 100);
+                });
+            });
+
+            // Scrape job titles (updated selector for Indeed as of 2025)
+            await page.waitForSelector('h2.jobtitle a span[title]', { timeout: 10000 });
+            const jobs = await page.$$eval('h2.jobtitle a span[title]', nodes =>
+                nodes.map(n => n.textContent.trim()).filter(t => t.length > 0)
+            );
+
+            if (jobs.length === 0) {
+                console.warn('No jobs found. The selector might be outdated or the page didn’t load correctly.');
+                throw new Error('No jobs found on the page');
+            }
+
+            console.log(`Scraped ${jobs.length} jobs: ${jobs.join(', ')}`);
+            await browser.close();
+            return res.json(jobs.slice(0, 5));
+        } catch (error) {
+            attempts++;
+            console.error(`Attempt ${attempts} failed. Error:`, error.message, error.stack);
+            if (browser) await browser.close();
+
+            if (attempts === maxAttempts) {
+                return res.status(500).json({
+                    error: 'Failed to scrape jobs after multiple attempts',
+                    details: error.message,
+                });
+            }
+
+            // Wait before retrying
+            await new Promise(resolve => setTimeout(resolve, initialDelay * Math.pow(2, attempts)));
+        }
     }
 });
 

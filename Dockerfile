@@ -1,16 +1,16 @@
 # Stage 1: Build environment with dependencies
-FROM node:18 AS builder
+FROM node:20-bullseye-slim AS builder
 
 WORKDIR /app
 
 # Copy package files first to leverage Docker cache
 COPY package*.json ./
 
-# Install Node.js dependencies
+# Install Node.js dependencies (including Puppeteer with bundled Chromium)
 RUN npm install
 
-# Stage 2: Runtime environment with Chromium
-FROM node:18-slim
+# Stage 2: Runtime environment
+FROM node:20-bullseye-slim
 
 # Set working directory
 WORKDIR /app
@@ -19,29 +19,25 @@ WORKDIR /app
 RUN groupadd -r appuser && useradd -r -g appuser appuser \
     && mkdir -p /app && chown appuser:appuser /app
 
-# Install system dependencies and Chromium
+# Install minimal dependencies for Puppeteer’s bundled Chromium
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     fonts-liberation \
-    libappindicator3-1 \
     libasound2 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
-    libc6 \
     libcairo2 \
     libcups2 \
     libdbus-1-3 \
     libexpat1 \
     libfontconfig1 \
     libgbm1 \
-    libgcc1 \
     libglib2.0-0 \
     libgtk-3-0 \
     libnspr4 \
     libnss3 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
-    libstdc++6 \
     libx11-6 \
     libx11-xcb1 \
     libxcb1 \
@@ -55,10 +51,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrender1 \
     libxss1 \
     libxtst6 \
-    lsb-release \
     wget \
     xdg-utils \
-    chromium \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

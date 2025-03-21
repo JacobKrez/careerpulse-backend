@@ -33,18 +33,17 @@ app.get('/scrape', async (req, res) => {
         try {
             console.log(`Attempt ${attempts + 1} to scrape jobs for skills: ${skills}`);
 
-            // Launch Puppeteer with optimized settings for Render
+            // Launch Puppeteer with bundled Chromium (no executablePath)
             browser = await puppeteer.launch({
                 headless: true,
                 args: [
                     '--no-sandbox', // Required for Docker on Render
                     '--disable-setuid-sandbox',
-                    '--disable-crash-reporter', // Disable crash reporting to avoid crashpad issues
+                    '--disable-crash-reporter', // Disable crash reporting
                     '--no-first-run',
                     '--disable-gpu', // Helps in headless environments
                     '--disable-dev-shm-usage', // Avoids shared memory issues in Docker
                 ],
-                executablePath: '/usr/bin/chromium', // Hardcoded path for Render
                 ignoreDefaultArgs: ['--enable-crash-reporter'], // Explicitly ignore crash reporter
             });
 

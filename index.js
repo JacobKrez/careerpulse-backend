@@ -3,12 +3,22 @@ const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const cors = require('cors');
 const OpenAI = require('openai');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 puppeteer.use(StealthPlugin());
 
 const app = express();
 app.use(cors());
+app.use(express.json());
+
+// Rate limiting to prevent abuse
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.',
+});
+app.use(limiter);
 
 // Validate API key
 const openaiApiKey = process.env.OPENAI_API_KEY;
@@ -21,9 +31,24 @@ const openai = new OpenAI({
     apiKey: openaiApiKey,
 });
 
-// Scrape endpoint with enhanced functionality
+// Static job data as a fallback
+const jobsData = [
+    { title: 'Investment Banker', company: 'Goldman Sachs', description: 'Analyze financial data and manage client portfolios.' },
+    { title: 'Financial Analyst', company: 'JPMorgan Chase', description: 'Prepare reports and forecasts for investment decisions.' },
+];
+
+// /jobs endpoint for static job data
+app.get('/jobs', (req, res) => {
+    res.json(jobsData);
+});
+
+// Enhanced /scrape endpoint
 app.get('/scrape', async (req, res) => {
     const skills = req.query.skills || 'developer';
+    if (!skills || typeof skills !== 'string' || skills.length > 100) {
+        return res.status(400).json({ error: 'Invalid or missing skills parameter' });
+    }
+
     let browser;
     let attempts = 0;
     const maxAttempts = 3;
@@ -33,25 +58,25 @@ app.get('/scrape', async (req, res) => {
         try {
             console.log(`Attempt ${attempts + 1} to scrape jobs for skills: ${skills}`);
 
-            // Launch Puppeteer with bundled Chromium (no executablePath)
+            // Launch Puppeteer with bundled Chromium
             browser = await puppeteer.launch({
                 headless: true,
                 args: [
-                    '--no-sandbox', // Required for Docker on Render
+                    '--no-sandbox',
                     '--disable-setuid-sandbox',
-                    '--disable-crash-reporter', // Disable crash reporting
+                    '--disable-crash-reporter',
                     '--no-first-run',
-                    '--disable-gpu', // Helps in headless environments
-                    '--disable-dev-shm-usage', // Avoids shared memory issues in Docker
+                    '--disable-gpu',
+                    '--disable-dev-shm-usage',
                 ],
-                ignoreDefaultArgs: ['--enable-crash-reporter'], // Explicitly ignore crash reporter
+                ignoreDefaultArgs: ['--enable-crash-reporter'],
             });
 
             const page = await browser.newPage();
 
             // Anti-bot measures
             await page.setUserAgent(
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             );
             await page.setViewport({ width: 1280, height: 720 });
 
@@ -59,8 +84,8 @@ app.get('/scrape', async (req, res) => {
             const url = `https://www.indeed.com/jobs?q=${encodeURIComponent(skills)}&l=`;
             await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
-            // Add a delay to mimic human behavior and wait for dynamic content
-            await page.waitForTimeout(3000);
+            // Wait for dynamic content to load
+            await page.waitForTimeout(5000);
 
             // Scroll to load more jobs
             await page.evaluate(async () => {
@@ -79,18 +104,30 @@ app.get('/scrape', async (req, res) => {
                 });
             });
 
-            // Scrape job titles (updated selector for Indeed as of 2025)
-            await page.waitForSelector('h2.jobtitle a span[title]', { timeout: 10000 });
-            const jobs = await page.$$eval('h2.jobtitle a span[title]', nodes =>
-                nodes.map(n => n.textContent.trim()).filter(t => t.length > 0)
-            );
+            // Scrape job details (updated selector for Indeed as of 2025)
+            const jobs = await page.evaluate(() => {
+                const jobCards = document.querySelectorAll('div.job_seen_beacon');
+                const jobList = [];
+                jobCards.forEach(card => {
+                    const titleElement = card.querySelector('h2 a span');
+                    const companyElement = card.querySelector('span.companyName');
+                    const descriptionElement = card.querySelector('div.job-snippet');
+                    const title = titleElement ? titleElement.textContent.trim() : '';
+                    const company = companyElement ? companyElement.textContent.trim() : 'Unknown Company';
+                    const description = descriptionElement ? descriptionElement.textContent.trim() : 'No description available';
+                    if (title) {
+                        jobList.push({ title, company, description });
+                    }
+                });
+                return jobList;
+            });
 
             if (jobs.length === 0) {
                 console.warn('No jobs found. The selector might be outdated or the page didn’t load correctly.');
                 throw new Error('No jobs found on the page');
             }
 
-            console.log(`Scraped ${jobs.length} jobs: ${jobs.join(', ')}`);
+            console.log(`Scraped ${jobs.length} jobs`);
             await browser.close();
             return res.json(jobs.slice(0, 5));
         } catch (error) {
@@ -105,7 +142,7 @@ app.get('/scrape', async (req, res) => {
                 });
             }
 
-            // Wait before retrying
+            // Exponential backoff
             await new Promise(resolve => setTimeout(resolve, initialDelay * Math.pow(2, attempts)));
         }
     }
@@ -134,11 +171,11 @@ async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) {
 
 app.get('/email', async (req, res) => {
     try {
-        const { job, skills } = req.query;
+        const { job, skills, company, experience } = req.query;
         if (!job || !skills) {
             return res.status(400).send('Job title and skills are required');
         }
-        const prompt = `Write a concise, professional outreach email for a ${job} position, highlighting skills: ${skills}.`;
+        const prompt = `Write a concise, professional outreach email for a ${job} position at ${company || 'a company'}, highlighting skills: ${skills}, and mentioning ${experience || 'several'} years of experience.`;
 
         const response = await retryWithBackoff(async () => {
             return await openai.chat.completions.create({
@@ -177,6 +214,54 @@ app.get('/interview', async (req, res) => {
     } catch (error) {
         console.error('Interview error:', error);
         res.status(500).send('Failed to generate questions');
+    }
+});
+
+app.post('/mock-interview', async (req, res) => {
+    try {
+        const { job, skills } = req.body;
+        if (!job || !skills) {
+            return res.status(400).send('Job title and skills are required');
+        }
+        const prompt = `Act as an interviewer for a ${job} role. Ask a question tailored to skills: ${skills}, and provide feedback on a sample answer.`;
+
+        const response = await retryWithBackoff(async () => {
+            return await openai.chat.completions.create({
+                model: 'gpt-3.5-turbo',
+                messages: [{ role: 'user', content: prompt }],
+                max_tokens: 200,
+            });
+        });
+
+        const mockInterview = response.choices[0].message.content;
+        res.send(mockInterview);
+    } catch (error) {
+        console.error('Mock interview error:', error);
+        res.status(500).send('Failed to generate mock interview');
+    }
+});
+
+app.get('/career-coach', async (req, res) => {
+    try {
+        const { job, experience } = req.query;
+        if (!job) {
+            return res.status(400).send('Job title is required');
+        }
+        const prompt = `Provide a step-by-step career plan for someone with ${experience || 'no'} years of experience who wants to become a ${job}. Include education, skills to develop, networking tips, and job application strategies.`;
+
+        const response = await retryWithBackoff(async () => {
+            return await openai.chat.completions.create({
+                model: 'gpt-3.5-turbo',
+                messages: [{ role: 'user', content: prompt }],
+                max_tokens: 300,
+            });
+        });
+
+        const careerPlan = response.choices[0].message.content;
+        res.send(careerPlan);
+    } catch (error) {
+        console.error('Career coach error:', error);
+        res.status(500).send('Failed to generate career plan');
     }
 });
 

@@ -1,17 +1,28 @@
+// index.js
 const express = require('express');
 const cors = require('cors');
-const OpenAI = require('openai');
 const rateLimit = require('express-rate-limit');
-const fetch = require('node-fetch');
+const helmet = require('helmet'); // Added for security headers
+const morgan = require('morgan'); // Added for request logging
 require('dotenv').config();
+
+// Import routes
+const jobsRoutes = require('./routes/jobs');
+const openaiRoutes = require('./routes/openai');
+const stripeRoutes = require('./routes/stripe');
 
 const app = express();
 
 // Enable trust proxy to handle X-Forwarded-For header correctly
 app.set('trust proxy', 1);
 
-app.use(cors());
+// Security middleware
+app.use(helmet()); // Set security headers
+app.use(cors({ origin: 'https://careerpulseai.netlify.app' })); // Restrict CORS to your frontend
 app.use(express.json());
+
+// Request logging
+app.use(morgan('combined')); // Log requests in a detailed format
 
 // Rate limiting to prevent abuse
 const limiter = rateLimit({
@@ -21,29 +32,20 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Validate API keys
-const openaiApiKey = process.env.OPENAI_API_KEY;
-if (!openaiApiKey) {
-    console.error('Error: OPENAI_API_KEY is not set. Please set it in .env or environment variables.');
-    process.exit(1);
+// Validate environment variables
+const requiredEnvVars = ['OPENAI_API_KEY', 'ADZUNA_APP_ID', 'ADZUNA_APP_KEY', 'STRIPE_SECRET_KEY', 'STRIPE_PRICE_ID'];
+for (const envVar of requiredEnvVars) {
+    if (!process.env[envVar]) {
+        console.error(`Error: ${envVar} is not set. Please set it in .env or environment variables.`);
+        process.exit(1);
+    }
 }
 
-const adzunaAppId = process.env.ADZUNA_APP_ID;
-const adzunaAppKey = process.env.ADZUNA_APP_KEY;
-if (!adzunaAppId || !adzunaAppKey) {
-    console.error('Error: ADZUNA_APP_ID and ADZUNA_APP_KEY must be set in .env or environment variables.');
-    process.exit(1);
-}
-
-const openai = new OpenAI({
-    apiKey: openaiApiKey,
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err.stack);
+    res.status(500).json({ error: 'Something went wrong', details: err.message });
 });
-
-// Static job data as a fallback
-const jobsData = [
-    { title: 'Investment Banker', company: 'Goldman Sachs', description: 'Analyze financial data and manage client portfolios.' },
-    { title: 'Financial Analyst', company: 'JPMorgan Chase', description: 'Prepare reports and forecasts for investment decisions.' },
-];
 
 // Landing page
 app.get('/', (req, res) => {
@@ -67,7 +69,6 @@ app.get('/', (req, res) => {
                     color: #1F2937;
                     line-height: 1.6;
                 }
-                /* Navigation Bar */
                 nav {
                     background-color: #1E3A8A;
                     padding: 1rem 2rem;
@@ -94,7 +95,6 @@ app.get('/', (req, res) => {
                 nav a:hover {
                     color: #3B82F6;
                 }
-                /* Hero Section */
                 .hero {
                     background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
                     color: #FFFFFF;
@@ -113,13 +113,11 @@ app.get('/', (req, res) => {
                     max-width: 600px;
                     margin: 0 auto;
                 }
-                /* Container */
                 .container {
                     max-width: 1200px;
                     margin: 0 auto;
                     padding: 2rem;
                 }
-                /* Endpoint Cards */
                 .endpoint {
                     background-color: #FFFFFF;
                     border-radius: 8px;
@@ -160,7 +158,6 @@ app.get('/', (req, res) => {
                     font-size: 0.9rem;
                     line-height: 1.5;
                 }
-                /* Footer */
                 footer {
                     background-color: #1E3A8A;
                     color: #FFFFFF;
@@ -180,7 +177,6 @@ app.get('/', (req, res) => {
                     color: #FFFFFF;
                     text-decoration: underline;
                 }
-                /* Responsive Design */
                 @media (max-width: 768px) {
                     .hero h1 {
                         font-size: 2rem;
@@ -202,7 +198,6 @@ app.get('/', (req, res) => {
             </style>
         </head>
         <body>
-            <!-- Navigation Bar -->
             <nav>
                 <div class="logo">CareerPulseAI</div>
                 <div>
@@ -211,26 +206,25 @@ app.get('/', (req, res) => {
                     <a href="https://github.com/JacobKrez/careerpulse-backend" target="_blank">GitHub</a>
                 </div>
             </nav>
-
-            <!-- Hero Section -->
             <section class="hero">
                 <h1>CareerPulseAI Backend API</h1>
-                <p>Powering career growth with AI-driven insights and real-time job data.</p>
+                <p>Powering career growth with AI-driven insights, real-time job data, and subscription management.</p>
             </section>
-
-            <!-- API Documentation -->
             <div class="container" id="api-docs">
                 <div class="endpoint">
                     <h2>GET /jobs</h2>
                     <p>Returns a list of static job listings.</p>
                     <p><a href="/jobs" target="_blank">Try it</a></p>
                     <p>Example Response:</p>
-                    <pre>${JSON.stringify(jobsData, null, 2)}</pre>
+                    <pre>${JSON.stringify([
+                        { title: 'Investment Banker', company: 'Goldman Sachs', description: 'Analyze financial data and manage client portfolios.' },
+                        { title: 'Financial Analyst', company: 'JPMorgan Chase', description: 'Prepare reports and forecasts for investment decisions.' }
+                    ], null, 2)}</pre>
                 </div>
                 <div class="endpoint">
-                    <h2>GET /scrape?skills={skills}</h2>
+                    <h2>GET /jobs/scrape?skills={skills}</h2>
                     <p>Fetches job listings from Adzuna based on the provided skills (e.g., "developer").</p>
-                    <p><a href="/scrape?skills=developer" target="_blank">Try it with skills=developer</a></p>
+                    <p><a href="/jobs/scrape?skills=developer" target="_blank">Try it with skills=developer</a></p>
                     <p>Example Response:</p>
                     <pre>
 [
@@ -248,9 +242,9 @@ app.get('/', (req, res) => {
                     </pre>
                 </div>
                 <div class="endpoint">
-                    <h2>GET /career-coach?job={job}&experience={experience}</h2>
+                    <h2>GET /openai/career-coach?job={job}&experience={experience}</h2>
                     <p>Generates a step-by-step career plan for the specified job and experience level.</p>
-                    <p><a href="/career-coach?job=Investment%20Banker&experience=2" target="_blank">Try it with job=Investment Banker&experience=2</a></p>
+                    <p><a href="/openai/career-coach?job=Investment%20Banker&experience=2" target="_blank">Try it with job=Investment Banker&experience=2</a></p>
                     <p>Example Response:</p>
                     <pre>
 Step 1: Education
@@ -264,9 +258,9 @@ Step 4: Job Application Strategies
                     </pre>
                 </div>
                 <div class="endpoint">
-                    <h2>GET /email?job={job}&skills={skills}&company={company}&experience={experience}</h2>
+                    <h2>GET /openai/email?job={job}&skills={skills}&company={company}&experience={experience}</h2>
                     <p>Generates a professional outreach email for the specified job, skills, company, and experience.</p>
-                    <p><a href="/email?job=Software%20Developer&skills=JavaScript&company=Tech%20Corp&experience=3" target="_blank">Try it with job=Software Developer&skills=JavaScript&company=Tech Corp&experience=3</a></p>
+                    <p><a href="/openai/email?job=Software%20Developer&skills=JavaScript&company=Tech%20Corp&experience=3" target="_blank">Try it with job=Software Developer&skills=JavaScript&company=Tech Corp&experience=3</a></p>
                     <p>Example Response:</p>
                     <pre>
 Subject: Application for Software Developer Position at Tech Corp
@@ -284,9 +278,9 @@ Best regards,
                     </pre>
                 </div>
                 <div class="endpoint">
-                    <h2>GET /interview?job={job}&skills={skills}</h2>
+                    <h2>GET /openai/interview?job={job}&skills={skills}</h2>
                     <p>Generates 3 common interview questions for the specified job, tailored to the provided skills.</p>
-                    <p><a href="/interview?job=Software%20Developer&skills=JavaScript" target="_blank">Try it with job=Software Developer&skills=JavaScript</a></p>
+                    <p><a href="/openai/interview?job=Software%20Developer&skills=JavaScript" target="_blank">Try it with job=Software Developer&skills=JavaScript</a></p>
                     <p>Example Response:</p>
                     <pre>
 1. Can you describe a challenging project where you used JavaScript to solve a complex problem? How did you approach it?
@@ -295,7 +289,7 @@ Best regards,
                     </pre>
                 </div>
                 <div class="endpoint">
-                    <h2>POST /mock-interview</h2>
+                    <h2>POST /openai/mock-interview</h2>
                     <p>Generates a mock interview question and feedback for the specified job and skills.</p>
                     <p>Request Body: <code>{ "job": "Software Developer", "skills": "JavaScript" }</code></p>
                     <p>Example Response:</p>
@@ -307,9 +301,18 @@ Sample Answer: I would start by analyzing the function's time complexity and ide
 Feedback: Your answer provides a good starting point by mentioning time complexity and memoization. However, you could enhance it by discussing specific tools like Chrome DevTools for profiling, or by mentioning modern JavaScript features like Web Workers for offloading tasks.
                     </pre>
                 </div>
+                <div class="endpoint">
+                    <h2>POST /stripe/create-checkout-session</h2>
+                    <p>Creates a Stripe Checkout session for a subscription payment.</p>
+                    <p>Request Body: <code>{ "userId": "user_id_here" }</code></p>
+                    <p>Example Response:</p>
+                    <pre>
+{
+  "id": "cs_test_XXXXXXXXXXXXXXXXXXXX"
+}
+                    </pre>
+                </div>
             </div>
-
-            <!-- Footer -->
             <footer>
                 <p>© 2025 CareerPulseAI. All rights reserved. | <a href="https://github.com/JacobKrez/careerpulse-backend" target="_blank">GitHub</a></p>
             </footer>
@@ -318,162 +321,17 @@ Feedback: Your answer provides a good starting point by mentioning time complexi
     `);
 });
 
-// /jobs endpoint for static job data
-app.get('/jobs', (req, res) => {
-    res.json(jobsData);
-});
+// Mount routes
+app.use('/jobs', jobsRoutes);
+app.use('/openai', openaiRoutes);
+app.use('/stripe', stripeRoutes);
 
-// /scrape endpoint using Adzuna API
-app.get('/scrape', async (req, res) => {
-    const skills = req.query.skills || 'developer';
-    if (!skills || typeof skills !== 'string' || skills.length > 100) {
-        return res.status(400).json({ error: 'Invalid or missing skills parameter' });
-    }
-
-    try {
-        const url = `http://api.adzuna.com/v1/api/jobs/us/search/1?app_id=${adzunaAppId}&app_key=${adzunaAppKey}&what=${encodeURIComponent(skills)}&content-type=application/json`;
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Adzuna API request failed: ${response.statusText}`);
-        }
-        const data = await response.json();
-
-        const jobs = data.results.map(job => ({
-            title: job.title,
-            company: job.company.display_name,
-            description: job.description.slice(0, 200) + '...', // Truncate for brevity
-        }));
-
-        if (jobs.length === 0) {
-            return res.status(404).json({ error: 'No jobs found for the given skills' });
-        }
-
-        res.json(jobs.slice(0, 5));
-    } catch (error) {
-        console.error('Error fetching jobs from Adzuna:', error.message);
-        res.status(500).json({
-            error: 'Failed to fetch jobs',
-            details: error.message,
-        });
-    }
-});
-
-async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) {
-    let retryCount = 0;
-    let delay = initialDelay;
-
-    while (retryCount < maxRetries) {
-        try {
-            return await fn();
-        } catch (error) {
-            if (error.response && error.response.status === 429) {
-                console.warn(`Rate limit hit. Retrying in ${delay}ms...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-                retryCount++;
-                delay *= 2;
-            } else {
-                throw error;
-            }
-        }
-    }
-    throw new Error('Max retries reached');
-}
-
-app.get('/email', async (req, res) => {
-    try {
-        const { job, skills, company, experience } = req.query;
-        if (!job || !skills) {
-            return res.status(400).send('Job title and skills are required');
-        }
-        const prompt = `Write a concise, professional outreach email for a ${job} position at ${company || 'a company'}, highlighting skills: ${skills}, and mentioning ${experience || 'several'} years of experience.`;
-
-        const response = await retryWithBackoff(async () => {
-            return await openai.chat.completions.create({
-                model: 'gpt-3.5-turbo',
-                messages: [{ role: 'user', content: prompt }],
-                max_tokens: 150,
-            });
-        });
-
-        const emailContent = response.choices[0].message.content;
-        res.send(emailContent);
-    } catch (error) {
-        console.error('Email error:', error);
-        res.status(500).send('Failed to generate email');
-    }
-});
-
-app.get('/interview', async (req, res) => {
-    try {
-        const { job, skills } = req.query;
-        if (!job || !skills) {
-            return res.status(400).send('Job title and skills are required');
-        }
-        const prompt = `Generate 3 common interview questions for a ${job} role, tailored to skills: ${skills}.`;
-
-        const response = await retryWithBackoff(async () => {
-            return await openai.chat.completions.create({
-                model: 'gpt-3.5-turbo',
-                messages: [{ role: 'user', content: prompt }],
-                max_tokens: 100,
-            });
-        });
-
-        const interviewQuestions = response.choices[0].message.content;
-        res.send(interviewQuestions);
-    } catch (error) {
-        console.error('Interview error:', error);
-        res.status(500).send('Failed to generate questions');
-    }
-});
-
-app.post('/mock-interview', async (req, res) => {
-    try {
-        const { job, skills } = req.body;
-        if (!job || !skills) {
-            return res.status(400).send('Job title and skills are required');
-        }
-        const prompt = `Act as an interviewer for a ${job} role. Ask a question tailored to skills: ${skills}, and provide feedback on a sample answer.`;
-
-        const response = await retryWithBackoff(async () => {
-            return await openai.chat.completions.create({
-                model: 'gpt-3.5-turbo',
-                messages: [{ role: 'user', content: prompt }],
-                max_tokens: 200,
-            });
-        });
-
-        const mockInterview = response.choices[0].message.content;
-        res.send(mockInterview);
-    } catch (error) {
-        console.error('Mock interview error:', error);
-        res.status(500).send('Failed to generate mock interview');
-    }
-});
-
-app.get('/career-coach', async (req, res) => {
-    try {
-        const { job, experience } = req.query;
-        if (!job) {
-            return res.status(400).send('Job title is required');
-        }
-        const prompt = `Provide a step-by-step career plan for someone with ${experience || 'no'} years of experience who wants to become a ${job}. Include education, skills to develop, networking tips, and job application strategies.`;
-
-        const response = await retryWithBackoff(async () => {
-            return await openai.chat.completions.create({
-                model: 'gpt-3.5-turbo',
-                messages: [{ role: 'user', content: prompt }],
-                max_tokens: 300,
-            });
-        });
-
-        const careerPlan = response.choices[0].message.content;
-        res.send(careerPlan);
-    } catch (error) {
-        console.error('Career coach error:', error);
-        res.status(500).send('Failed to generate career plan');
-    }
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({ error: 'Endpoint not found' });
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server on ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});

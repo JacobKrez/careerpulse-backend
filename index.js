@@ -6,7 +6,10 @@ const fetch = require('node-fetch');
 require('dotenv').config();
 
 const app = express();
+
+// Enable trust proxy to handle X-Forwarded-For header correctly
 app.set('trust proxy', 1);
+
 app.use(cors());
 app.use(express.json());
 
@@ -51,61 +54,172 @@ app.get('/', (req, res) => {
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>CareerPulseAI Backend API</title>
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
             <style>
-                body {
-                    font-family: Arial, sans-serif;
+                * {
                     margin: 0;
                     padding: 0;
-                    background-color: #f4f4f9;
-                    color: #333;
+                    box-sizing: border-box;
+                    font-family: 'Inter', sans-serif;
                 }
-                header {
-                    background-color: #007bff;
-                    color: white;
-                    padding: 20px;
+                body {
+                    background-color: #F9FAFB;
+                    color: #1F2937;
+                    line-height: 1.6;
+                }
+                /* Navigation Bar */
+                nav {
+                    background-color: #1E3A8A;
+                    padding: 1rem 2rem;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    position: sticky;
+                    top: 0;
+                    z-index: 1000;
+                }
+                nav .logo {
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: #FFFFFF;
+                }
+                nav a {
+                    color: #FFFFFF;
+                    text-decoration: none;
+                    margin-left: 1.5rem;
+                    font-weight: 500;
+                    transition: color 0.3s ease;
+                }
+                nav a:hover {
+                    color: #3B82F6;
+                }
+                /* Hero Section */
+                .hero {
+                    background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+                    color: #FFFFFF;
                     text-align: center;
+                    padding: 4rem 2rem;
+                    clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
                 }
-                h1 {
-                    margin: 0;
-                    font-size: 2.5em;
+                .hero h1 {
+                    font-size: 3rem;
+                    font-weight: 700;
+                    margin-bottom: 1rem;
                 }
+                .hero p {
+                    font-size: 1.25rem;
+                    font-weight: 400;
+                    max-width: 600px;
+                    margin: 0 auto;
+                }
+                /* Container */
                 .container {
                     max-width: 1200px;
-                    margin: 20px auto;
-                    padding: 0 20px;
+                    margin: 0 auto;
+                    padding: 2rem;
                 }
+                /* Endpoint Cards */
                 .endpoint {
-                    background-color: white;
+                    background-color: #FFFFFF;
                     border-radius: 8px;
-                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                    padding: 20px;
-                    margin-bottom: 20px;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    padding: 1.5rem;
+                    margin-bottom: 2rem;
+                    transition: transform 0.3s ease, box-shadow 0.3s ease;
                 }
-                h2 {
-                    color: #007bff;
-                    margin-top: 0;
+                .endpoint:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
                 }
-                pre {
-                    background-color: #f8f9fa;
-                    padding: 10px;
+                .endpoint h2 {
+                    color: #1E3A8A;
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    margin-bottom: 0.5rem;
+                }
+                .endpoint p {
+                    font-size: 1rem;
+                    margin-bottom: 0.5rem;
+                }
+                .endpoint a {
+                    color: #3B82F6;
+                    text-decoration: none;
+                    font-weight: 500;
+                    transition: color 0.3s ease;
+                }
+                .endpoint a:hover {
+                    color: #1E3A8A;
+                    text-decoration: underline;
+                }
+                .endpoint pre {
+                    background-color: #F9FAFB;
+                    padding: 1rem;
                     border-radius: 4px;
                     overflow-x: auto;
+                    font-size: 0.9rem;
+                    line-height: 1.5;
                 }
-                a {
-                    color: #007bff;
+                /* Footer */
+                footer {
+                    background-color: #1E3A8A;
+                    color: #FFFFFF;
+                    text-align: center;
+                    padding: 1.5rem;
+                    margin-top: 2rem;
+                }
+                footer p {
+                    font-size: 0.9rem;
+                }
+                footer a {
+                    color: #3B82F6;
                     text-decoration: none;
+                    font-weight: 500;
                 }
-                a:hover {
+                footer a:hover {
+                    color: #FFFFFF;
                     text-decoration: underline;
+                }
+                /* Responsive Design */
+                @media (max-width: 768px) {
+                    .hero h1 {
+                        font-size: 2rem;
+                    }
+                    .hero p {
+                        font-size: 1rem;
+                    }
+                    nav {
+                        flex-direction: column;
+                        gap: 1rem;
+                    }
+                    nav a {
+                        margin-left: 0;
+                    }
+                    .container {
+                        padding: 1rem;
+                    }
                 }
             </style>
         </head>
         <body>
-            <header>
+            <!-- Navigation Bar -->
+            <nav>
+                <div class="logo">CareerPulseAI</div>
+                <div>
+                    <a href="#api-docs">API Docs</a>
+                    <a href="https://careerpulseai.netlify.app" target="_blank">Frontend</a>
+                    <a href="https://github.com/JacobKrez/careerpulse-backend" target="_blank">GitHub</a>
+                </div>
+            </nav>
+
+            <!-- Hero Section -->
+            <section class="hero">
                 <h1>CareerPulseAI Backend API</h1>
-                <p>Powering career growth with AI-driven insights</p>
-            </header>
-            <div class="container">
+                <p>Powering career growth with AI-driven insights and real-time job data.</p>
+            </section>
+
+            <!-- API Documentation -->
+            <div class="container" id="api-docs">
                 <div class="endpoint">
                     <h2>GET /jobs</h2>
                     <p>Returns a list of static job listings.</p>
@@ -119,18 +233,18 @@ app.get('/', (req, res) => {
                     <p><a href="/scrape?skills=developer" target="_blank">Try it with skills=developer</a></p>
                     <p>Example Response:</p>
                     <pre>
-                        [
-                            {
-                                "title": "Software Developer",
-                                "company": "Tech Corp",
-                                "description": "Develop and maintain web applications..."
-                            },
-                            {
-                                "title": "Frontend Developer",
-                                "company": "Innovate Inc",
-                                "description": "Build user interfaces with React..."
-                            }
-                        ]
+[
+  {
+    "title": "Software Developer",
+    "company": "Tech Corp",
+    "description": "Develop and maintain web applications..."
+  },
+  {
+    "title": "Frontend Developer",
+    "company": "Innovate Inc",
+    "description": "Build user interfaces with React..."
+  }
+]
                     </pre>
                 </div>
                 <div class="endpoint">
@@ -139,10 +253,14 @@ app.get('/', (req, res) => {
                     <p><a href="/career-coach?job=Investment%20Banker&experience=2" target="_blank">Try it with job=Investment Banker&experience=2</a></p>
                     <p>Example Response:</p>
                     <pre>
-                        Step 1: Education - Pursue a relevant degree in the field.
-                        Step 2: Skills to Develop - Build key skills required for the role.
-                        Step 3: Networking Tips - Connect with industry professionals.
-                        Step 4: Job Application Strategies - Tailor your resume and cover letter.
+Step 1: Education
+- Pursue a relevant degree in the field.
+Step 2: Skills to Develop
+- Build key skills required for the role.
+Step 3: Networking Tips
+- Connect with industry professionals.
+Step 4: Job Application Strategies
+- Tailor your resume and cover letter.
                     </pre>
                 </div>
                 <div class="endpoint">
@@ -151,17 +269,18 @@ app.get('/', (req, res) => {
                     <p><a href="/email?job=Software%20Developer&skills=JavaScript&company=Tech%20Corp&experience=3" target="_blank">Try it with job=Software Developer&skills=JavaScript&company=Tech Corp&experience=3</a></p>
                     <p>Example Response:</p>
                     <pre>
-                        Subject: Application for Software Developer Position at Tech Corp
-                        Dear Hiring Manager,
+Subject: Application for Software Developer Position at Tech Corp
 
-                        I am excited to apply for the Software Developer position at Tech Corp. With 3 years of experience in software development, I have honed my skills in JavaScript, which I believe align well with the requirements of this role.
+Dear Hiring Manager,
 
-                        In my previous role, I successfully developed and maintained web applications, leveraging JavaScript to create dynamic and user-friendly interfaces. I am eager to bring my expertise to Tech Corp and contribute to your innovative projects.
+I am excited to apply for the Software Developer position at Tech Corp. With 3 years of experience in software development, I have honed my skills in JavaScript, which I believe align well with the requirements of this role.
 
-                        Thank you for considering my application. I look forward to the opportunity to discuss how my skills and experience can benefit your team.
+In my previous role, I successfully developed and maintained web applications, leveraging JavaScript to create dynamic and user-friendly interfaces. I am eager to bring my expertise to Tech Corp and contribute to your innovative projects.
 
-                        Best regards,
-                        [Your Name]
+Thank you for considering my application. I look forward to the opportunity to discuss how my skills and experience can benefit your team.
+
+Best regards,
+[Your Name]
                     </pre>
                 </div>
                 <div class="endpoint">
@@ -170,9 +289,9 @@ app.get('/', (req, res) => {
                     <p><a href="/interview?job=Software%20Developer&skills=JavaScript" target="_blank">Try it with job=Software Developer&skills=JavaScript</a></p>
                     <p>Example Response:</p>
                     <pre>
-                        1. Can you describe a challenging project where you used JavaScript to solve a complex problem? How did you approach it?
-                        2. How do you ensure the performance and scalability of your JavaScript code in a large-scale application?
-                        3. What strategies do you use to debug JavaScript code, and can you walk us through a recent example?
+1. Can you describe a challenging project where you used JavaScript to solve a complex problem? How did you approach it?
+2. How do you ensure the performance and scalability of your JavaScript code in a large-scale application?
+3. What strategies do you use to debug JavaScript code, and can you walk us through a recent example?
                     </pre>
                 </div>
                 <div class="endpoint">
@@ -181,14 +300,20 @@ app.get('/', (req, res) => {
                     <p>Request Body: <code>{ "job": "Software Developer", "skills": "JavaScript" }</code></p>
                     <p>Example Response:</p>
                     <pre>
-                        Interviewer: Can you explain how you would optimize a JavaScript function for better performance?
-                        Sample Answer: I would start by analyzing the function's time complexity and identifying any redundant operations. For example, I’d use memoization to cache results of expensive computations and avoid unnecessary DOM manipulations by batching updates.
+Interviewer: Can you explain how you would optimize a JavaScript function for better performance?
 
-                        Feedback: Your answer provides a good starting point by mentioning time complexity and memoization. However, you could enhance it by discussing specific tools like Chrome DevTools for profiling, or by mentioning modern JavaScript features like Web Workers for offloading tasks.
-                     </pre>
-                    </div>
+Sample Answer: I would start by analyzing the function's time complexity and identifying any redundant operations. For example, I’d use memoization to cache results of expensive computations and avoid unnecessary DOM manipulations by batching updates.
+
+Feedback: Your answer provides a good starting point by mentioning time complexity and memoization. However, you could enhance it by discussing specific tools like Chrome DevTools for profiling, or by mentioning modern JavaScript features like Web Workers for offloading tasks.
+                    </pre>
                 </div>
-            </body>
+            </div>
+
+            <!-- Footer -->
+            <footer>
+                <p>© 2025 CareerPulseAI. All rights reserved. | <a href="https://github.com/JacobKrez/careerpulse-backend" target="_blank">GitHub</a></p>
+            </footer>
+        </body>
         </html>
     `);
 });

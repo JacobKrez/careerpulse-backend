@@ -118,196 +118,236 @@ app.get('/', (req, res) => {
                     <p><a href="/scrape?skills=developer" target="_blank">Try it with skills=developer</a></p>
                     <p>Example Response:</p>
                     <pre>
-[
-{
-"title": "Software Developer",
-"company": "Tech Corp",
-"description": "Develop and maintain web applications..."
-},
-{
-"title": "Frontend Developer",
-"company": "Innovate Inc",
-"description": "Build user interfaces with React..."
-}
-]
-</pre>
+                        [
+                            {
+                                "title": "Software Developer",
+                                "company": "Tech Corp",
+                                "description": "Develop and maintain web applications..."
+                            },
+                            {
+                                "title": "Frontend Developer",
+                                "company": "Innovate Inc",
+                                "description": "Build user interfaces with React..."
+                            }
+                        ]
+                    </pre>
+                </div>
+                <div class="endpoint">
+                    <h2>GET /career-coach?job={job}&experience={experience}</h2>
+                    <p>Generates a step-by-step career plan for the specified job and experience level.</p>
+                    <p><a href="/career-coach?job=Investment%20Banker&experience=2" target="_blank">Try it with job=Investment Banker&experience=2</a></p>
+                    <p>Example Response:</p>
+                    <pre>
+                        Step 1: Education - Pursue a relevant degree in the field.
+                        Step 2: Skills to Develop - Build key skills required for the role.
+                        Step 3: Networking Tips - Connect with industry professionals.
+                        Step 4: Job Application Strategies - Tailor your resume and cover letter.
+                    </pre>
+                </div>
+                <div class="endpoint">
+                    <h2>GET /email?job={job}&skills={skills}&company={company}&experience={experience}</h2>
+                    <p>Generates a professional outreach email for the specified job, skills, company, and experience.</p>
+                    <p><a href="/email?job=Software%20Developer&skills=JavaScript&company=Tech%20Corp&experience=3" target="_blank">Try it with job=Software Developer&skills=JavaScript&company=Tech Corp&experience=3</a></p>
+                    <p>Example Response:</p>
+                    <pre>
+                        Subject: Application for Software Developer Position at Tech Corp
+                        Dear Hiring Manager,
 
-</div> <div class="endpoint"> <h2>GET /career-coach?job={job}&experience={experience}</h2> <p>Generates a step-by-step career plan for the specified job and experience level.</p> <p><a href="/career-coach?job=Investment%20Banker&experience=2" target="_blank">Try it with job=Investment Banker&experience=2</a></p> <p>Example Response:</p> <pre> Step 1: Education - Pursue a relevant degree in the field. Step 2: Skills to Develop - Build key skills required for the role. Step 3: Networking Tips - Connect with industry professionals. Step 4: Job Application Strategies - Tailor your resume and cover letter. </pre> </div> <div class="endpoint"> <h2>GET /email?job={job}&skills={skills}&company={company}&experience={experience}</h2> <p>Generates a professional outreach email for the specified job, skills, company, and experience.</p> <p><a href="/email?job=Software%20Developer&skills=JavaScript&company=Tech%20Corp&experience=3" target="_blank">Try it with job=Software Developer&skills=JavaScript&company=Tech Corp&experience=3</a></p> <p>Example Response:</p> <pre> Subject: Application for Software Developer Position at Tech Corp
-Dear Hiring Manager,
+                        I am excited to apply for the Software Developer position at Tech Corp. With 3 years of experience in software development, I have honed my skills in JavaScript, which I believe align well with the requirements of this role.
 
-I am excited to apply for the Software Developer position at Tech Corp. With 3 years of experience in software development, I have honed my skills in JavaScript, which I believe align well with the requirements of this role.
+                        In my previous role, I successfully developed and maintained web applications, leveraging JavaScript to create dynamic and user-friendly interfaces. I am eager to bring my expertise to Tech Corp and contribute to your innovative projects.
 
-In my previous role, I successfully developed and maintained web applications, leveraging JavaScript to create dynamic and user-friendly interfaces. I am eager to bring my expertise to Tech Corp and contribute to your innovative projects.
+                        Thank you for considering my application. I look forward to the opportunity to discuss how my skills and experience can benefit your team.
 
-Thank you for considering my application. I look forward to the opportunity to discuss how my skills and experience can benefit your team.
+                        Best regards,
+                        [Your Name]
+                    </pre>
+                </div>
+                <div class="endpoint">
+                    <h2>GET /interview?job={job}&skills={skills}</h2>
+                    <p>Generates 3 common interview questions for the specified job, tailored to the provided skills.</p>
+                    <p><a href="/interview?job=Software%20Developer&skills=JavaScript" target="_blank">Try it with job=Software Developer&skills=JavaScript</a></p>
+                    <p>Example Response:</p>
+                    <pre>
+                        1. Can you describe a challenging project where you used JavaScript to solve a complex problem? How did you approach it?
+                        2. How do you ensure the performance and scalability of your JavaScript code in a large-scale application?
+                        3. What strategies do you use to debug JavaScript code, and can you walk us through a recent example?
+                    </pre>
+                </div>
+                <div class="endpoint">
+                    <h2>POST /mock-interview</h2>
+                    <p>Generates a mock interview question and feedback for the specified job and skills.</p>
+                    <p>Request Body: <code>{ "job": "Software Developer", "skills": "JavaScript" }</code></p>
+                    <p>Example Response:</p>
+                    <pre>
+                        Interviewer: Can you explain how you would optimize a JavaScript function for better performance?
+                        Sample Answer: I would start by analyzing the function's time complexity and identifying any redundant operations. For example, I’d use memoization to cache results of expensive computations and avoid unnecessary DOM manipulations by batching updates.
 
-Best regards,
-[Your Name]
-</pre>
+                        Feedback: Your answer provides a good starting point by mentioning time complexity and memoization. However, you could enhance it by discussing specific tools like Chrome DevTools for profiling, or by mentioning modern JavaScript features like Web Workers for offloading tasks.
+                     </pre>
+                    </div>
+                </div>
+            </body>
+        </html>
+    `);
+});
 
-</div> <div class="endpoint"> <h2>GET /interview?job={job}&skills={skills}</h2> <p>Generates 3 common interview questions for the specified job, tailored to the provided skills.</p> <p><a href="/interview?job=Software%20Developer&skills=JavaScript" target="_blank">Try it with job=Software Developer&skills=JavaScript</a></p> <p>Example Response:</p> <pre> 1. Can you describe a challenging project where you used JavaScript to solve a complex problem? How did you approach it? 2. How do you ensure the performance and scalability of your JavaScript code in a large-scale application? 3. What strategies do you use to debug JavaScript code, and can you walk us through a recent example? </pre> </div> <div class="endpoint"> <h2>POST /mock-interview</h2> <p>Generates a mock interview question and feedback for the specified job and skills.</p> <p>Request Body: <code>{ "job": "Software Developer", "skills": "JavaScript" }</code></p> <p>Example Response:</p> <pre> Interviewer: Can you explain how you would optimize a JavaScript function for better performance?
-Sample Answer: I would start by analyzing the function's time complexity and identifying any redundant operations. For example, I’d use memoization to cache results of expensive computations and avoid unnecessary DOM manipulations by batching updates.
-
-Feedback: Your answer provides a good starting point by mentioning time complexity and memoization. However, you could enhance it by discussing specific tools like Chrome DevTools for profiling, or by mentioning modern JavaScript features like Web Workers for offloading tasks.
-</pre>
-
-</div> </div> </body> </html> `); });
 // /jobs endpoint for static job data
 app.get('/jobs', (req, res) => {
-res.json(jobsData);
+    res.json(jobsData);
 });
 
 // /scrape endpoint using Adzuna API
 app.get('/scrape', async (req, res) => {
-const skills = req.query.skills || 'developer';
-if (!skills || typeof skills !== 'string' || skills.length > 100) {
-return res.status(400).json({ error: 'Invalid or missing skills parameter' });
-}
+    const skills = req.query.skills || 'developer';
+    if (!skills || typeof skills !== 'string' || skills.length > 100) {
+        return res.status(400).json({ error: 'Invalid or missing skills parameter' });
+    }
 
-try {
-const url = http://api.adzuna.com/v1/api/jobs/us/search/1?app_id=${adzunaAppId}&app_key=${adzunaAppKey}&what=${encodeURIComponent(skills)}&content-type=application/json;
-const response = await fetch(url);
-if (!response.ok) {
-throw new Error(Adzuna API request failed: ${response.statusText});
-}
-const data = await response.json();
+    try {
+        const url = `http://api.adzuna.com/v1/api/jobs/us/search/1?app_id=${adzunaAppId}&app_key=${adzunaAppKey}&what=${encodeURIComponent(skills)}&content-type=application/json`;
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Adzuna API request failed: ${response.statusText}`);
+        }
+        const data = await response.json();
 
-const jobs = data.results.map(job => ({
-title: job.title,
-company: job.company.display_name,
-description: job.description.slice(0, 200) + '...', // Truncate for brevity
-}));
+        const jobs = data.results.map(job => ({
+            title: job.title,
+            company: job.company.display_name,
+            description: job.description.slice(0, 200) + '...', // Truncate for brevity
+        }));
 
-if (jobs.length === 0) {
-return res.status(404).json({ error: 'No jobs found for the given skills' });
-}
+        if (jobs.length === 0) {
+            return res.status(404).json({ error: 'No jobs found for the given skills' });
+        }
 
-res.json(jobs.slice(0, 5));
-} catch (error) {
-console.error('Error fetching jobs from Adzuna:', error.message);
-res.status(500).json({
-error: 'Failed to fetch jobs',
-details: error.message,
-});
-}
+        res.json(jobs.slice(0, 5));
+    } catch (error) {
+        console.error('Error fetching jobs from Adzuna:', error.message);
+        res.status(500).json({
+            error: 'Failed to fetch jobs',
+            details: error.message,
+        });
+    }
 });
 
 async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) {
-let retryCount = 0;
-let delay = initialDelay;
+    let retryCount = 0;
+    let delay = initialDelay;
 
-while (retryCount < maxRetries) {
-try {
-return await fn();
-} catch (error) {
-if (error.response && error.response.status === 429) {
-console.warn(Rate limit hit. Retrying in ${delay}ms...);
-await new Promise(resolve => setTimeout(resolve, delay));
-retryCount++;
-delay *= 2;
-} else {
-throw error;
-}
-}
-}
-throw new Error('Max retries reached');
+    while (retryCount < maxRetries) {
+        try {
+            return await fn();
+        } catch (error) {
+            if (error.response && error.response.status === 429) {
+                console.warn(`Rate limit hit. Retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                retryCount++;
+                delay *= 2;
+            } else {
+                throw error;
+            }
+        }
+    }
+    throw new Error('Max retries reached');
 }
 
 app.get('/email', async (req, res) => {
-try {
-const { job, skills, company, experience } = req.query;
-if (!job || !skills) {
-return res.status(400).send('Job title and skills are required');
-}
-const prompt = Write a concise, professional outreach email for a ${job} position at ${company || 'a company'}, highlighting skills: ${skills}, and mentioning ${experience || 'several'} years of experience.;
+    try {
+        const { job, skills, company, experience } = req.query;
+        if (!job || !skills) {
+            return res.status(400).send('Job title and skills are required');
+        }
+        const prompt = `Write a concise, professional outreach email for a ${job} position at ${company || 'a company'}, highlighting skills: ${skills}, and mentioning ${experience || 'several'} years of experience.`;
 
-const response = await retryWithBackoff(async () => {
-return await openai.chat.completions.create({
-model: 'gpt-3.5-turbo',
-messages: [{ role: 'user', content: prompt }],
-max_tokens: 150,
-});
-});
+        const response = await retryWithBackoff(async () => {
+            return await openai.chat.completions.create({
+                model: 'gpt-3.5-turbo',
+                messages: [{ role: 'user', content: prompt }],
+                max_tokens: 150,
+            });
+        });
 
-const emailContent = response.choices[0].message.content;
-res.send(emailContent);
-} catch (error) {
-console.error('Email error:', error);
-res.status(500).send('Failed to generate email');
-}
+        const emailContent = response.choices[0].message.content;
+        res.send(emailContent);
+    } catch (error) {
+        console.error('Email error:', error);
+        res.status(500).send('Failed to generate email');
+    }
 });
 
 app.get('/interview', async (req, res) => {
-try {
-const { job, skills } = req.query;
-if (!job || !skills) {
-return res.status(400).send('Job title and skills are required');
-}
-const prompt = Generate 3 common interview questions for a ${job} role, tailored to skills: ${skills}.;
+    try {
+        const { job, skills } = req.query;
+        if (!job || !skills) {
+            return res.status(400).send('Job title and skills are required');
+        }
+        const prompt = `Generate 3 common interview questions for a ${job} role, tailored to skills: ${skills}.`;
 
-const response = await retryWithBackoff(async () => {
-return await openai.chat.completions.create({
-model: 'gpt-3.5-turbo',
-messages: [{ role: 'user', content: prompt }],
-max_tokens: 100,
-});
-});
+        const response = await retryWithBackoff(async () => {
+            return await openai.chat.completions.create({
+                model: 'gpt-3.5-turbo',
+                messages: [{ role: 'user', content: prompt }],
+                max_tokens: 100,
+            });
+        });
 
-const interviewQuestions = response.choices[0].message.content;
-res.send(interviewQuestions);
-} catch (error) {
-console.error('Interview error:', error);
-res.status(500).send('Failed to generate questions');
-}
+        const interviewQuestions = response.choices[0].message.content;
+        res.send(interviewQuestions);
+    } catch (error) {
+        console.error('Interview error:', error);
+        res.status(500).send('Failed to generate questions');
+    }
 });
 
 app.post('/mock-interview', async (req, res) => {
-try {
-const { job, skills } = req.body;
-if (!job || !skills) {
-return res.status(400).send('Job title and skills are required');
-}
-const prompt = Act as an interviewer for a ${job} role. Ask a question tailored to skills: ${skills}, and provide feedback on a sample answer.;
+    try {
+        const { job, skills } = req.body;
+        if (!job || !skills) {
+            return res.status(400).send('Job title and skills are required');
+        }
+        const prompt = `Act as an interviewer for a ${job} role. Ask a question tailored to skills: ${skills}, and provide feedback on a sample answer.`;
 
-const response = await retryWithBackoff(async () => {
-return await openai.chat.completions.create({
-model: 'gpt-3.5-turbo',
-messages: [{ role: 'user', content: prompt }],
-max_tokens: 200,
-});
-});
+        const response = await retryWithBackoff(async () => {
+            return await openai.chat.completions.create({
+                model: 'gpt-3.5-turbo',
+                messages: [{ role: 'user', content: prompt }],
+                max_tokens: 200,
+            });
+        });
 
-const mockInterview = response.choices[0].message.content;
-res.send(mockInterview);
-} catch (error) {
-console.error('Mock interview error:', error);
-res.status(500).send('Failed to generate mock interview');
-}
+        const mockInterview = response.choices[0].message.content;
+        res.send(mockInterview);
+    } catch (error) {
+        console.error('Mock interview error:', error);
+        res.status(500).send('Failed to generate mock interview');
+    }
 });
 
 app.get('/career-coach', async (req, res) => {
-try {
-const { job, experience } = req.query;
-if (!job) {
-return res.status(400).send('Job title is required');
-}
-const prompt = Provide a step-by-step career plan for someone with ${experience || 'no'} years of experience who wants to become a ${job}. Include education, skills to develop, networking tips, and job application strategies.;
+    try {
+        const { job, experience } = req.query;
+        if (!job) {
+            return res.status(400).send('Job title is required');
+        }
+        const prompt = `Provide a step-by-step career plan for someone with ${experience || 'no'} years of experience who wants to become a ${job}. Include education, skills to develop, networking tips, and job application strategies.`;
 
-const response = await retryWithBackoff(async () => {
-return await openai.chat.completions.create({
-model: 'gpt-3.5-turbo',
-messages: [{ role: 'user', content: prompt }],
-max_tokens: 300,
-});
-});
+        const response = await retryWithBackoff(async () => {
+            return await openai.chat.completions.create({
+                model: 'gpt-3.5-turbo',
+                messages: [{ role: 'user', content: prompt }],
+                max_tokens: 300,
+            });
+        });
 
-const careerPlan = response.choices[0].message.content;
-res.send(careerPlan);
-} catch (error) {
-console.error('Career coach error:', error);
-res.status(500).send('Failed to generate career plan');
-}
+        const careerPlan = response.choices[0].message.content;
+        res.send(careerPlan);
+    } catch (error) {
+        console.error('Career coach error:', error);
+        res.status(500).send('Failed to generate career plan');
+    }
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(Server on ${PORT}));
+app.listen(PORT, () => console.log(`Server on ${PORT}`));
